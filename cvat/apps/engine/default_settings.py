@@ -22,7 +22,7 @@ Static media cache can increase data access speed and reduce server load,
 but significantly increase disk space occupied by tasks.
 """
 
-CVAT_CACHE_ITEM_MAX_SIZE = 500 * 1024 * 1024
+CVAT_CACHE_ITEM_MAX_SIZE = int(os.getenv("CVAT_CACHE_ITEM_MAX_SIZE", 500 * 1024 * 1024))
 """
 Kvrocks limits the item size to 512 MB, which results “Connection reset” exception.
 Let's check the data size and raise an understandable exception instead of the redis-py exception
