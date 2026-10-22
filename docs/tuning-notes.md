@@ -103,3 +103,36 @@ Số đo: thời gian worker tạo task 80 cloud, trước 0.788s / 0.516s / 0.5
 (trung vị 0.516s), sau 0.518s / 0.473s / 0.477s (trung vị 0.477s, khoảng 8%).
 Đĩa 62M. Export 80 file `.pcd`, 64103576 byte. Task 27 chunk 0 inode `226551`,
 link count 2.
+
+## 7. Bỏ process rqscheduler
+
+`cvat_worker_utils` chạy rqworker, rqscheduler, smokescreen và supervisord.
+`rqscheduler` import toàn bộ `cvat.asgi` chỉ để poll cron mỗi 30 giây.
+
+Số đo RSS trước khi cắt (`ps`, KB): rqworker 226140, rqscheduler 218288,
+supervisord 27836, smokescreen 12928. Tổng 485192 KB. Sau khi cắt:
+`ps` không còn `rqscheduler`; cgroup `docker stats` là 188.7 MiB. rqworker vẫn
+nghe queue `cleaning`. `--with-scheduler` trên lệnh worker nằm trong
+`docker-compose.yml` (không sửa ở đây); đó là heartbeat của RQ, không chạy
+5 cron của `rq_scheduler`.
+
+Đã bỏ khỏi `backend_entrypoint.d/cvat.conf` (`["cleaning"]=""`). File này nằm
+trong image gốc, nên `docker/Dockerfile.lowram` COPY đè lên. Build còn gỡ CR,
+vì bash đọc conf và một checkout Windows (CRLF) làm worker restart với
+`Unexpected component`.
+
+Thay bằng cron của host: `scripts/cvat-periodic.ps1` gọi
+`django-admin runperiodicjob <job_id>` mỗi giờ cho cả 5 job. Lệnh này gọi hàm
+trực tiếp, không cần worker và không cần scheduler. Chạy thừa không hại vì
+các hàm idempotent. Đánh đổi: khoảng 5 process Django ngắn mỗi giờ, thay cho
+218288 KB thường trú.
+
+5 job phải giữ: clean_up_sessions, cron_export_cache_directory_cleanup,
+cron_tmp_directory_cleanup, cron_instance_tmp_directories_cleanup,
+clear_unusable_access_tokens.
+
+`cron_tmp_directory_cleanup` dọn `/home/django/data/tmp` (`TMP_FILES_ROOT`),
+theo atime, giữ 3 ngày. Probe ở `/tmp` không bị xoá. Probe thư mục
+`/home/django/data/tmp/cvat_cleanup_probe` (atime 30 ngày) bị xoá, exit 0.
+
+Nếu cron của host không được cấu hình, tmp và export cache sẽ tăng vô hạn.

@@ -8,8 +8,12 @@ COPY cvat/apps/engine/views.py /opt/cvat/cvat/apps/engine/views.py
 COPY cvat/apps/engine/__init__.py /opt/cvat/cvat/apps/engine/__init__.py
 COPY cvat/apps/engine/apps.py /opt/cvat/cvat/apps/engine/apps.py
 COPY cvat/apps/engine/task.py /opt/cvat/cvat/apps/engine/task.py
-# Bo bytecode cu de Python chac chan doc file moi
-RUN find /opt/cvat -name __pycache__ -type d -prune -exec rm -rf {} + \
+# Base image still starts rqscheduler from its own copy of this file.
+COPY backend_entrypoint.d/cvat.conf /opt/cvat/backend_entrypoint.d/cvat.conf
+# Bo bytecode cu de Python chac chan doc file moi.
+# cvat.conf is parsed by bash; a CR from a Windows checkout makes every queue "unexpected".
+RUN sed -i 's/\r$//' /opt/cvat/backend_entrypoint.d/cvat.conf \
+ && find /opt/cvat -name __pycache__ -type d -prune -exec rm -rf {} + \
  && python -m compileall -q \
     /opt/cvat/cvat/apps/engine/default_settings.py \
     /opt/cvat/cvat/settings/base.py \
