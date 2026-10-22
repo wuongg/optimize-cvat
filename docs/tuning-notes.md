@@ -15,6 +15,8 @@ Số dưới đây là peak WorkingSet của mọi process Edge khi cuộn 60 gi
 | `CVAT_ALLOW_STATIC_CACHE=yes` | `MEDIA_CACHE_ALLOW_STATIC_CACHE` đọc env này. Task mới được phép ghi chunk tĩnh ra đĩa; lần đọc sau không decode lại trong RAM server. | Đĩa tăng theo dữ liệu task. |
 | `CVAT_CACHE_ITEM_MAX_SIZE=67108864` | `from django.conf import settings; print(settings.CVAT_CACHE_ITEM_MAX_SIZE)` in 67108864 trên `cvat_server` và `cvat_worker_utils`. Image mặc định là 500 MiB. | Chunk lớn hơn 64 MiB không vào cache; lần sau phải decode lại. |
 
+Mọi tham số đọc từ env chỉ có tác dụng nếu file chứa nó nằm trong `docker/Dockerfile.lowram`. Hiện image COPY 5 file; `task.py` không nằm trong số đó. Trước khi kết luận một env var "không giúp", phải chứng minh file đọc nó có trong image — bằng `docker exec cvat_server grep -n <TÊN_BIẾN> /opt/cvat/...`.
+
 `default_settings.py` đọc env, mặc định vẫn 500 MiB nếu không set. `base.py` re-export tên này để `django.conf.settings` thấy trước `AppConfig.ready()`. `docker compose up -d` dùng image `cvat/server:lowram`, trong đó hai file này đã được bake sẵn. Default 64MB nằm trong `docker-compose.yml`.
 
 ## 2. Dead config
@@ -32,7 +34,7 @@ Số dưới đây là peak WorkingSet của mọi process Edge khi cuộn 60 gi
 | Chunk 12 tiết kiệm ~1 GB so với chunk 36, cùng 200 frame | Peak trung vị chunk 36 là 2036.8 MB, chunk 12 là 2016.2 MB, chênh 20.6 MB. | Bác. Mô hình ~1 GB sai. |
 | 720p đưa peak 200 frame xuống 1.3–1.5 GB | Peak trung vị 720p là 2437.7 MB, cao hơn 2036.8 MB là 400.9 MB. | Bác. 720p nặng hơn. |
 | Sàn ~1 GB là bitmap 1080p | 540p, 200 frame, peak 1955.5 MB. Bitmap 1080p trong cache là 2.07 MB/frame, không phải 8.3 MB. | Bác. Phần khoảng 1.5 GB không theo pixel nguồn. |
-| `CVAT_DEFAULT_CHUNK_SIZE=12` hạ peak server của video 1080p 50 frame | Hai vòng, container tạo mới, `scripts/bench_cvat.ps1`. Vòng 1 worker 546.9 MiB (chunk 36) và 546.7 MiB (chunk 12), stack 1028.2 và 1032.9. Vòng 2 worker 550.5 và 553.4, stack 1036.7 và 1046.0. Chênh lớn nhất 0.9% stack, chunk 12 không thấp hơn. | Bác. Code đọc env đã gỡ. Dòng `"12"` trong `docker-compose.yml` không còn tác dụng. |
+| `CVAT_DEFAULT_CHUNK_SIZE=12` hạ peak server của video 1080p 50 frame | Hai vòng, container tạo mới, `scripts/bench_cvat.ps1`. Vòng 1 worker 546.9 MiB (chunk 36) và 546.7 MiB (chunk 12), stack 1028.2 và 1032.9. Vòng 2 worker 550.5 và 553.4, stack 1036.7 và 1046.0. Chênh lớn nhất 0.9% stack, chunk 12 không thấp hơn. | Bác. Lúc đo, `task.py` được COPY tạm vào image; DB task 11 và 13 là chunk 36, task 12 và 14 là chunk 12. Chênh stack 0.5% và 0.9%. Code đọc env đã gỡ. Commit không giữ COPY đó. |
 
 ## 4. Phát hiện downscale ngầm
 
