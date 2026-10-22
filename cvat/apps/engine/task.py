@@ -2155,6 +2155,12 @@ def _create_static_chunks(
         # _write_pcd_file and writestr without compress_type (ZIP_STORED).
         # Measured chunk md5s match, so the original zip would be a second
         # copy. A writer that is not a ZipChunkWriter still writes both files.
+        # Correctness depends on ZipCompressedChunkWriter keeping
+        # compresslevel=0 and writestr() without compress_type, so that both
+        # writers emit ZIP_STORED and the chunks are byte-identical (verified
+        # equal by md5). If upstream ever raises the compress level or passes
+        # compress_type=ZIP_DEFLATED, this hardlink would silently serve
+        # deflated data as the ORIGINAL chunk - drop the dedup or compare md5.
         dedup_original = (
             db_task.dimension == models.DimensionType.DIM_3D
             and isinstance(original_chunk_writer, ZipChunkWriter)
