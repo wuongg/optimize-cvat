@@ -71,3 +71,15 @@ Cùng video 1080p, chunk 36. Peak Edge:
 | 200 | 2036 MB |
 
 Giữ 1080p và chia job. 50 frame nằm dưới 1.5 GB. 100 frame và 200 frame nằm trên 1.5 GB. Hạ độ phân giải hoặc hạ chunk không đưa job 200 frame xuống dưới 1.5 GB. 50 frame vẫn trên 900 MB và 1200 MB, nên hai mức đó chưa có cấu hình đo được.
+
+## 6. Chunk size cho point cloud
+
+`task.py` tính `chunk_size` từ `area = WIDTH × HEIGHT` của header PCD. Với cloud
+không tổ chức, `HEIGHT = 1` nên `area` là **số điểm**, và công thức giữ tích
+`chunk_size × N ≈ 74.6M` điểm. Nghĩa là `chunk_size = 72` với mọi cloud nhỏ hơn
+~1M điểm, và mỗi request chunk mang theo 72 cloud dù client chỉ vẽ một cái.
+
+Số đo: 80 cloud, mỗi file 800151 byte (0.763 MiB). Trước: task 17, `chunk_size` 72, `segment_16-0.zip` 57617806 byte (54.95 MiB), 2 chunk, `du` 123M. Sau: task 18, `chunk_size` 10, `segment_17-0.zip` 8002492 byte (7.63 MiB), 8 chunk.
+
+Đã sửa: nhánh riêng cho `DIM_3D`, budget theo **byte file**
+(`CVAT_3D_CHUNK_BUDGET`, mặc định 8 MiB). `max(1, ...)` chỉ áp cho 3D.

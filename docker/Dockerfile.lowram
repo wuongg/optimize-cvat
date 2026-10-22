@@ -7,6 +7,7 @@ COPY cvat/settings/base.py /opt/cvat/cvat/settings/base.py
 COPY cvat/apps/engine/views.py /opt/cvat/cvat/apps/engine/views.py
 COPY cvat/apps/engine/__init__.py /opt/cvat/cvat/apps/engine/__init__.py
 COPY cvat/apps/engine/apps.py /opt/cvat/cvat/apps/engine/apps.py
+COPY cvat/apps/engine/task.py /opt/cvat/cvat/apps/engine/task.py
 # Bo bytecode cu de Python chac chan doc file moi
 RUN find /opt/cvat -name __pycache__ -type d -prune -exec rm -rf {} + \
  && python -m compileall -q \
@@ -14,5 +15,6 @@ RUN find /opt/cvat -name __pycache__ -type d -prune -exec rm -rf {} + \
     /opt/cvat/cvat/settings/base.py \
     /opt/cvat/cvat/apps/engine/views.py \
     /opt/cvat/cvat/apps/engine/__init__.py \
-    /opt/cvat/cvat/apps/engine/apps.py
+    /opt/cvat/cvat/apps/engine/apps.py \
+    /opt/cvat/cvat/apps/engine/task.py
 USER django

@@ -30,6 +30,7 @@ from logstash_async.constants import constants as logstash_async_constants
 
 from cvat import __version__
 from cvat.apps.engine.default_settings import (
+    CVAT_3D_CHUNK_BUDGET as CVAT_3D_CHUNK_BUDGET,
     CVAT_CACHE_ITEM_MAX_SIZE as CVAT_CACHE_ITEM_MAX_SIZE,
 )
 from cvat.apps.iam.password_validation import DEFAULT_MIN_PASSWORD_LENGTH

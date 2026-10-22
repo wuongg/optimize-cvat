@@ -1979,13 +1979,33 @@ def initialize_task(
     if db_data.chunk_size is None:
         if db_data.compressed_chunk_type == models.DataChoice.IMAGESET:
             first_image_idx = db_data.start_frame
-            if not is_data_in_cloud:
-                w, h = extractor.get_image_size(first_image_idx)
+
+            if db_task.dimension == models.DimensionType.DIM_3D:
+                # A point cloud has no 2D area. For an unorganized PCD,
+                # WIDTH * HEIGHT is the point count, not pixels, so the
+                # 1080p heuristic below would make every chunk hold ~74.6M
+                # points (~1.1 GB) regardless of cloud size. The client
+                # downloads and unpacks a whole chunk to render a single
+                # cloud, so budget by file size instead.
+                if not is_data_in_cloud:
+                    sample_bytes = Path(extractor.get_path(first_image_idx)).stat().st_size
+                else:
+                    img_properties = manifest[first_image_idx]
+                    sample_bytes = int(img_properties.get("size") or 0)
+                    if not sample_bytes:
+                        # XYZRGB worst case, 16 bytes per point
+                        sample_bytes = int(img_properties["width"]) * int(img_properties["height"]) * 16
+                sample_bytes = max(1, sample_bytes)
+                budget = getattr(settings, "CVAT_3D_CHUNK_BUDGET", 8 * 1024 * 1024)
+                db_data.chunk_size = max(1, min(72, budget // sample_bytes))
             else:
-                img_properties = manifest[first_image_idx]
-                w, h = img_properties["width"], img_properties["height"]
-            area = h * w
-            db_data.chunk_size = max(2, min(72, 36 * 1920 * 1080 // area))
+                if not is_data_in_cloud:
+                    w, h = extractor.get_image_size(first_image_idx)
+                else:
+                    img_properties = manifest[first_image_idx]
+                    w, h = img_properties["width"], img_properties["height"]
+                area = h * w
+                db_data.chunk_size = max(2, min(72, 36 * 1920 * 1080 // area))
         else:
             db_data.chunk_size = 36
 

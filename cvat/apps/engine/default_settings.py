@@ -23,6 +23,11 @@ but significantly increase disk space occupied by tasks.
 """
 
 CVAT_CACHE_ITEM_MAX_SIZE = int(os.getenv("CVAT_CACHE_ITEM_MAX_SIZE", 500 * 1024 * 1024))
+
+# A 3D chunk is downloaded and unpacked to draw one cloud. Above 8 MiB, changing
+# frame transfers many clouds; below that, scrubbing sends more requests.
+# 8 MiB keeps a 1-10 MiB cloud in one chunk or a small group.
+CVAT_3D_CHUNK_BUDGET = int(os.getenv("CVAT_3D_CHUNK_BUDGET", 8 * 1024 * 1024))
 """
 Kvrocks limits the item size to 512 MB, which results “Connection reset” exception.
 Let's check the data size and raise an understandable exception instead of the redis-py exception
