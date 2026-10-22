@@ -1,0 +1,10 @@
+ARG CVAT_VERSION=dev
+FROM cvat/server:${CVAT_VERSION}
+
+USER root
+COPY cvat/apps/engine/default_settings.py /opt/cvat/cvat/apps/engine/default_settings.py
+COPY cvat/settings/base.py /opt/cvat/cvat/settings/base.py
+# Bo bytecode cu de Python chac chan doc file moi
+RUN find /opt/cvat -name __pycache__ -type d -prune -exec rm -rf {} + \
+ && python -m compileall -q /opt/cvat/cvat/apps/engine/default_settings.py /opt/cvat/cvat/settings/base.py
+USER django

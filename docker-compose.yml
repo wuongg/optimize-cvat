@@ -19,6 +19,7 @@ x-backend-env: &backend-env
   CVAT_REDIS_ONDISK_PORT: 6666
   CVAT_LOG_IMPORT_ERRORS: 'true'
   CVAT_ALLOW_STATIC_CACHE: '${CVAT_ALLOW_STATIC_CACHE:-no}'
+  CVAT_CACHE_ITEM_MAX_SIZE: '${CVAT_CACHE_ITEM_MAX_SIZE:-67108864}'
   CVAT_DEFAULT_BACKING_CS_ID:
   CVAT_NUM_PROXIES: '${CVAT_NUM_PROXIES:-1}'
   # Empty unless the analytics profile is running. A set host makes Django
@@ -151,7 +152,12 @@ services:
 
   cvat_server:
     container_name: cvat_server
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on:
       <<: *backend-deps
@@ -211,7 +217,12 @@ services:
 
   cvat_worker_utils:
     container_name: cvat_worker_utils
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -235,7 +246,12 @@ services:
   cvat_worker_import:
     profiles: ["full"]
     container_name: cvat_worker_import
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -252,7 +268,12 @@ services:
   cvat_worker_export:
     profiles: ["full"]
     container_name: cvat_worker_export
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -269,7 +290,12 @@ services:
   cvat_worker_annotation:
     profiles: ["full"]
     container_name: cvat_worker_annotation
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -286,7 +312,12 @@ services:
   cvat_worker_webhooks:
     profiles: ["full"]
     container_name: cvat_worker_webhooks
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -303,7 +334,12 @@ services:
   cvat_worker_quality_reports:
     profiles: ["full"]
     container_name: cvat_worker_quality_reports
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -320,7 +356,12 @@ services:
   cvat_worker_chunks:
     profiles: ["full"]
     container_name: cvat_worker_chunks
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:
@@ -337,7 +378,12 @@ services:
   cvat_worker_consensus:
     profiles: ["full"]
     container_name: cvat_worker_consensus
-    image: cvat/server:${CVAT_VERSION:-dev}
+    image: cvat/server:lowram
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.lowram
+      args:
+        CVAT_VERSION: ${CVAT_VERSION:-dev}
     restart: always
     depends_on: *backend-deps
     environment:

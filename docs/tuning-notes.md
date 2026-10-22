@@ -1,5 +1,11 @@
 # Low-RAM notes
 
+## Cách chạy
+
+- Lần đầu: `docker compose up -d --build` (build image lowram một lần)
+- Các lần sau: `docker compose up -d` (dùng image đã build)
+- Nâng cấp upstream: `docker compose up -d --build` lại
+
 Số dưới đây là peak WorkingSet của mọi process Edge khi cuộn 60 giây, hoặc `settings.CVAT_CACHE_ITEM_MAX_SIZE` trên process đang chạy. Không dùng WorkingSet sau GC để kết luận peak.
 
 ## 1. Đã chứng minh có tác dụng
@@ -9,7 +15,7 @@ Số dưới đây là peak WorkingSet của mọi process Edge khi cuộn 60 gi
 | `CVAT_ALLOW_STATIC_CACHE=yes` | `MEDIA_CACHE_ALLOW_STATIC_CACHE` đọc env này. Task mới được phép ghi chunk tĩnh ra đĩa; lần đọc sau không decode lại trong RAM server. | Đĩa tăng theo dữ liệu task. |
 | `CVAT_CACHE_ITEM_MAX_SIZE=67108864` | `from django.conf import settings; print(settings.CVAT_CACHE_ITEM_MAX_SIZE)` in 67108864 trên `cvat_server` và `cvat_worker_utils`. Image mặc định là 500 MiB. | Chunk lớn hơn 64 MiB không vào cache; lần sau phải decode lại. |
 
-`default_settings.py` đọc env, mặc định vẫn 500 MiB nếu không set. `base.py` re-export tên này để `django.conf.settings` thấy trước `AppConfig.ready()`. Production phải rebuild image. Bind-mount hai file chỉ dùng khi dev.
+`default_settings.py` đọc env, mặc định vẫn 500 MiB nếu không set. `base.py` re-export tên này để `django.conf.settings` thấy trước `AppConfig.ready()`. `docker compose up -d` dùng image `cvat/server:lowram`, trong đó hai file này đã được bake sẵn. Default 64MB nằm trong `docker-compose.yml`.
 
 ## 2. Dead config
 
