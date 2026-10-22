@@ -85,3 +85,17 @@ Số đo: 80 cloud, mỗi file 800151 byte (0.763 MiB). Trước: task 17, `chun
 (`CVAT_3D_CHUNK_BUDGET`, mặc định 8 MiB). `max(1, ...)` chỉ áp cho 3D.
 
 Nhánh cloud storage không có kích thước byte trong manifest, nên ước lượng 32 B/điểm. `chunk_size` trên cloud có thể nhỏ hơn nhánh local. Chưa đo — đây là ước lượng.
+
+### Chunk original trùng với compressed
+
+Với point cloud, cả `ZipChunkWriter` và `ZipCompressedChunkWriter` ghi `.pcd`
+nguyên văn bằng `ZIP_STORED` (`_write_pcd_file` không nén, `writestr` không
+truyền `compress_type`), nên hai chunk byte-đối-byte. Đo: md5
+`d3ed93b573254eb3c92148892112bbbe` cho cả `segment_17-0.zip` original và compressed,
+`compress_type` 0, `du` = 123M = 2 × 61 MiB.
+
+Đã sửa: hardlink `original` → `compressed` cho `DIM_3D`. Task 21: `du` 62M
+(task 18 trước hardlink là 123M), inode `29622`, link count 2. Export
+`Sly Point Cloud Format 1.0` với `save_images` trả 64103576 byte, 80 file
+`.pcd`, mỗi file 800151 byte. Hai file vẫn được ghi, rồi `original` được
+thay bằng hardlink; tiết kiệm một bản đĩa, không bỏ lượt zip.

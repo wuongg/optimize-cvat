@@ -2159,6 +2159,32 @@ def _create_static_chunks(
 
         fs_original.result()
 
+        # ZipCompressedChunkWriter overrides save_as_chunk, so the two methods
+        # are not the same object. For DIM_3D both still call _write_pcd_file
+        # and store the zip with ZIP_STORED, and the two files were byte-identical.
+        if (
+            db_task.dimension == models.DimensionType.DIM_3D
+            and isinstance(original_chunk_writer, ZipChunkWriter)
+            and isinstance(compressed_chunk_writer, ZipChunkWriter)
+        ):
+            original_path = db_data.get_static_segment_chunk_path(
+                chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.ORIGINAL
+            )
+            compressed_path = db_data.get_static_segment_chunk_path(
+                chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.COMPRESSED
+            )
+            temporary = original_path.with_name(original_path.name + ".hardlink")
+            try:
+                os.link(compressed_path, temporary)
+                os.replace(temporary, original_path)
+            except OSError as ex:
+                # Cross-device or a filesystem without hardlinks: keep both files.
+                slogger.glob.warning(
+                    "Could not hardlink point cloud chunk %s: %s", chunk_idx, ex
+                )
+                if temporary.exists():
+                    temporary.unlink()
+
     assert db_task.media_type in (
         models.MediaType.IMAGE,
         models.MediaType.POINT_CLOUD,
