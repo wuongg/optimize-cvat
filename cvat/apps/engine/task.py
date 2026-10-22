@@ -2143,47 +2143,58 @@ def _create_static_chunks(
 
         # TODO: extract into a class
 
-        fs_original = executor.submit(
-            original_chunk_writer.save_as_chunk,
-            images=chunk_data,
-            chunk_path=db_data.get_static_segment_chunk_path(
-                chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.ORIGINAL
-            ),
+        original_path = db_data.get_static_segment_chunk_path(
+            chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.ORIGINAL
         )
-        compressed_chunk_writer.save_as_chunk(
-            images=chunk_data,
-            chunk_path=db_data.get_static_segment_chunk_path(
-                chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.COMPRESSED
-            ),
+        compressed_path = db_data.get_static_segment_chunk_path(
+            chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.COMPRESSED
         )
 
-        fs_original.result()
-
-        # ZipCompressedChunkWriter overrides save_as_chunk, so the two methods
-        # are not the same object. For DIM_3D both still call _write_pcd_file
-        # and store the zip with ZIP_STORED, and the two files were byte-identical.
-        if (
+        # ZipCompressedChunkWriter overrides save_as_chunk, so comparing the
+        # two methods with `is` is False even though both DIM_3D branches call
+        # _write_pcd_file and writestr without compress_type (ZIP_STORED).
+        # Measured chunk md5s match, so the original zip would be a second
+        # copy. A writer that is not a ZipChunkWriter still writes both files.
+        dedup_original = (
             db_task.dimension == models.DimensionType.DIM_3D
             and isinstance(original_chunk_writer, ZipChunkWriter)
             and isinstance(compressed_chunk_writer, ZipChunkWriter)
-        ):
-            original_path = db_data.get_static_segment_chunk_path(
-                chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.ORIGINAL
+        )
+
+        fs_original = None
+        if not dedup_original:
+            fs_original = executor.submit(
+                original_chunk_writer.save_as_chunk,
+                images=chunk_data,
+                chunk_path=original_path,
             )
-            compressed_path = db_data.get_static_segment_chunk_path(
-                chunk_idx, segment_id=db_segment.id, quality=models.FrameQuality.COMPRESSED
-            )
-            temporary = original_path.with_name(original_path.name + ".hardlink")
+
+        compressed_chunk_writer.save_as_chunk(
+            images=chunk_data,
+            chunk_path=compressed_path,
+        )
+
+        if fs_original is not None:
+            fs_original.result()
+        else:
+            # Export reads FrameQuality.ORIGINAL, so the path must exist and
+            # hold the real data. A hardlink gives both without a second zip.
             try:
-                os.link(compressed_path, temporary)
-                os.replace(temporary, original_path)
+                original_path.unlink(missing_ok=True)
+                os.link(compressed_path, original_path)
             except OSError as ex:
-                # Cross-device or a filesystem without hardlinks: keep both files.
+                # Cross-device link, or a filesystem without hardlink support.
+                # Fall back to writing the chunk properly - never leave the
+                # original path missing.
                 slogger.glob.warning(
-                    "Could not hardlink point cloud chunk %s: %s", chunk_idx, ex
+                    "Could not hardlink point cloud chunk %s (%s); "
+                    "writing a separate original chunk",
+                    chunk_idx,
+                    ex,
                 )
-                if temporary.exists():
-                    temporary.unlink()
+                original_chunk_writer.save_as_chunk(
+                    images=chunk_data, chunk_path=original_path
+                )
 
     assert db_task.media_type in (
         models.MediaType.IMAGE,

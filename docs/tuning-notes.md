@@ -86,16 +86,20 @@ Số đo: 80 cloud, mỗi file 800151 byte (0.763 MiB). Trước: task 17, `chun
 
 Nhánh cloud storage không có kích thước byte trong manifest, nên ước lượng 32 B/điểm. `chunk_size` trên cloud có thể nhỏ hơn nhánh local. Chưa đo — đây là ước lượng.
 
-### Chunk original trùng với compressed
+### Chunk original không được ghi cho point cloud
 
 Với point cloud, cả `ZipChunkWriter` và `ZipCompressedChunkWriter` ghi `.pcd`
 nguyên văn bằng `ZIP_STORED` (`_write_pcd_file` không nén, `writestr` không
-truyền `compress_type`), nên hai chunk byte-đối-byte. Đo: md5
-`d3ed93b573254eb3c92148892112bbbe` cho cả `segment_17-0.zip` original và compressed,
-`compress_type` 0, `du` = 123M = 2 × 61 MiB.
+truyền `compress_type`), nên hai chunk byte-đối-byte — đo md5 giống nhau,
+`compress_type = 0`. `ZipCompressedChunkWriter` vẫn override `save_as_chunk`,
+nên so hai method bằng `is` ra False. Điều kiện bỏ lượt zip là `DIM_3D` và
+cả hai writer là `ZipChunkWriter`.
 
-Đã sửa: hardlink `original` → `compressed` cho `DIM_3D`. Task 21: `du` 62M
-(task 18 trước hardlink là 123M), inode `29622`, link count 2. Export
-`Sly Point Cloud Format 1.0` với `save_images` trả 64103576 byte, 80 file
-`.pcd`, mỗi file 800151 byte. Hai file vẫn được ghi, rồi `original` được
-thay bằng hardlink; tiết kiệm một bản đĩa, không bỏ lượt zip.
+Đã sửa: với `DIM_3D`, chỉ ghi chunk compressed rồi hardlink `original` tới nó.
+Bỏ được một lượt zip mỗi chunk. Export vẫn đọc được vì đường dẫn tồn tại.
+Nếu filesystem không hỗ trợ hardlink, code tự ghi chunk original như cũ.
+
+Số đo: thời gian worker tạo task 80 cloud, trước 0.788s / 0.516s / 0.510s
+(trung vị 0.516s), sau 0.518s / 0.473s / 0.477s (trung vị 0.477s, khoảng 8%).
+Đĩa 62M. Export 80 file `.pcd`, 64103576 byte. Task 27 chunk 0 inode `226551`,
+link count 2.
