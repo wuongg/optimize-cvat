@@ -21,7 +21,6 @@ Số dưới đây là peak WorkingSet của mọi process Edge khi cuộn 60 gi
 
 | Tên | Vì sao chết |
 | --- | --- |
-| `CVAT_DEFAULT_CHUNK_SIZE` | `task.py` không đọc env. Khi request không gửi `chunk_size`, video bị gán 36. UI chỉ gửi `chunk_size` nếu ô advanced có giá trị (`tasks-actions.ts:252`, `session-implementation.ts:887`). Job tạo không điền ô đó trả `data_chunk_size` 36. |
 | `image_quality` | Không có env. UI mặc định 70 tại `advanced-configuration-form.tsx:88` và luôn gửi khi tạo task (`tasks-actions.ts:249`). |
 | `CVAT_CONCURRENT_CHUNK_PROCESSING` | `base.py` đã mặc định 1. Ghi thêm 1 trong overlay không đổi hành vi. |
 
@@ -33,6 +32,7 @@ Số dưới đây là peak WorkingSet của mọi process Edge khi cuộn 60 gi
 | Chunk 12 tiết kiệm ~1 GB so với chunk 36, cùng 200 frame | Peak trung vị chunk 36 là 2036.8 MB, chunk 12 là 2016.2 MB, chênh 20.6 MB. | Bác. Mô hình ~1 GB sai. |
 | 720p đưa peak 200 frame xuống 1.3–1.5 GB | Peak trung vị 720p là 2437.7 MB, cao hơn 2036.8 MB là 400.9 MB. | Bác. 720p nặng hơn. |
 | Sàn ~1 GB là bitmap 1080p | 540p, 200 frame, peak 1955.5 MB. Bitmap 1080p trong cache là 2.07 MB/frame, không phải 8.3 MB. | Bác. Phần khoảng 1.5 GB không theo pixel nguồn. |
+| `CVAT_DEFAULT_CHUNK_SIZE=12` hạ peak server của video 1080p 50 frame | Hai vòng, container tạo mới, `scripts/bench_cvat.ps1`. Vòng 1 worker 546.9 MiB (chunk 36) và 546.7 MiB (chunk 12), stack 1028.2 và 1032.9. Vòng 2 worker 550.5 và 553.4, stack 1036.7 và 1046.0. Chênh lớn nhất 0.9% stack, chunk 12 không thấp hơn. | Bác. Code đọc env đã gỡ. Dòng `"12"` trong `docker-compose.yml` không còn tác dụng. |
 
 ## 4. Phát hiện downscale ngầm
 

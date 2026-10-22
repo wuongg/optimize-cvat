@@ -1977,14 +1977,6 @@ def initialize_task(
 
     # calculate chunk size if it isn't specified
     if db_data.chunk_size is None:
-        # Fewer frames per chunk lowers the peak RAM of chunk preparation.
-        # Unset keeps the historical default of 36.
-        try:
-            default_chunk_size = int(os.getenv("CVAT_DEFAULT_CHUNK_SIZE", "36"))
-        except ValueError:
-            default_chunk_size = 36
-        default_chunk_size = max(2, min(72, default_chunk_size))
-
         if db_data.compressed_chunk_type == models.DataChoice.IMAGESET:
             first_image_idx = db_data.start_frame
             if not is_data_in_cloud:
@@ -1993,9 +1985,9 @@ def initialize_task(
                 img_properties = manifest[first_image_idx]
                 w, h = img_properties["width"], img_properties["height"]
             area = h * w
-            db_data.chunk_size = max(2, min(72, default_chunk_size * 1920 * 1080 // area))
+            db_data.chunk_size = max(2, min(72, 36 * 1920 * 1080 // area))
         else:
-            db_data.chunk_size = default_chunk_size
+            db_data.chunk_size = 36
 
     if db_task.media_type == models.MediaType.IMAGE and not data.get(
         "image_quality", db_data.image_quality
