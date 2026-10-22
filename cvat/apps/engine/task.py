@@ -1991,10 +1991,12 @@ def initialize_task(
                     sample_bytes = Path(extractor.get_path(first_image_idx)).stat().st_size
                 else:
                     img_properties = manifest[first_image_idx]
-                    sample_bytes = int(img_properties.get("size") or 0)
-                    if not sample_bytes:
-                        # XYZRGB worst case, 16 bytes per point
-                        sample_bytes = int(img_properties["width"]) * int(img_properties["height"]) * 16
+                    # The manifest has no per-item byte size (only name and
+                    # extension are guaranteed), so estimate from the header.
+                    # 32 bytes per point = XYZ + RGB + normals + intensity,
+                    # i.e. the widest common PCD layout. Over-estimating keeps
+                    # the chunk under budget; under-estimating does not.
+                    sample_bytes = int(img_properties["width"]) * int(img_properties["height"]) * 32
                 sample_bytes = max(1, sample_bytes)
                 budget = getattr(settings, "CVAT_3D_CHUNK_BUDGET", 8 * 1024 * 1024)
                 db_data.chunk_size = max(1, min(72, budget // sample_bytes))

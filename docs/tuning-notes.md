@@ -83,3 +83,5 @@ Số đo: 80 cloud, mỗi file 800151 byte (0.763 MiB). Trước: task 17, `chun
 
 Đã sửa: nhánh riêng cho `DIM_3D`, budget theo **byte file**
 (`CVAT_3D_CHUNK_BUDGET`, mặc định 8 MiB). `max(1, ...)` chỉ áp cho 3D.
+
+Nhánh cloud storage không có kích thước byte trong manifest, nên ước lượng 32 B/điểm. `chunk_size` trên cloud có thể nhỏ hơn nhánh local. Chưa đo — đây là ước lượng.
