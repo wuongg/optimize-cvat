@@ -3,5 +3,6 @@
 #
 # SPDX-License-Identifier: MIT
 
-# Force execution of declared symbols
-from .schema import *  # pylint: disable=wildcard-import
+# schema is imported from EngineConfig.ready(). Importing it here pulls
+# rest_framework while Django settings are still loading, and APIView then
+# freezes the stock auth, permission, and schema classes.

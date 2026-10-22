@@ -35,7 +35,13 @@ from drf_spectacular.utils import (
 )
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import APIException, NotFound, PermissionDenied, ValidationError
+from rest_framework.exceptions import (
+    APIException,
+    NotAuthenticated,
+    NotFound,
+    PermissionDenied,
+    ValidationError,
+)
 from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import SAFE_METHODS
 from rest_framework.response import Response
@@ -3380,6 +3386,9 @@ class UserViewSet(
         """
         Method returns an instance of a user who is currently authenticated
         """
+        if not request.user.is_authenticated:
+            raise NotAuthenticated()
+
         serializer_class = self.get_serializer_class()
         serializer = serializer_class(request.user, context={"request": request})
         return Response(serializer.data)

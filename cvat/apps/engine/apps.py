@@ -10,6 +10,12 @@ class EngineConfig(AppConfig):
     name = "cvat.apps.engine"
 
     def ready(self):
+        # Register spectacular extensions. Must not happen from __init__.py:
+        # settings import this package before REST_FRAMEWORK exists.
+        from . import schema
+
+        assert schema
+
         from django.conf import settings
 
         from . import default_settings
